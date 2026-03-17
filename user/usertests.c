@@ -2790,10 +2790,38 @@ lazy_sbrk(char *s)
   return 0;
 }
 
+int
+getppidtest(char *s)
+{
+  int pid = getpid();
+  int child = fork();
+  if(child < 0){
+    printf("%s: fork failed\n", s);
+    exit(1);
+  }
+  if(child == 0){
+    // In child: parent's pid should be our ppid
+    int ppid = getppid();
+    if(ppid != pid){
+      printf("%s: getppid() returned %d, expected %d\n", s, ppid, pid);
+      exit(1);
+    }
+    exit(0);
+  } else {
+    int status;
+    wait(&status);
+    if(status != 0){
+      return 1;
+    }
+  }
+  return 0;
+}
+
 struct test {
   int (*f)(char *);
   char *s;
 } quicktests[] = {
+  {getppidtest, "getppidtest"},
   {copyin, "copyin"},
   {copyout, "copyout"},
   {copyinstr1, "copyinstr1"},

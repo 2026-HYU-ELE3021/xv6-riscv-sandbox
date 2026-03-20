@@ -688,3 +688,14 @@ procdump(void)
     printf("\n");
   }
 }
+
+int
+kgetppid(void)
+{
+  struct proc *p = myproc();
+  if (p->parent) {
+    return p->parent->pid;
+  } else {
+    return -1;
+  }
+}

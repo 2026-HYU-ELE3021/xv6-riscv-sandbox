@@ -693,9 +693,10 @@ int
 kgetppid(void)
 {
   struct proc *p = myproc();
-  if (p->parent) {
-    return p->parent->pid;
-  } else {
-    return -1;
-  }
+  int ppid;
+  // Must hold wait_lock to safely read p->parent.
+  acquire(&wait_lock);
+  ppid = p->parent ? p->parent->pid : -1;
+  release(&wait_lock);
+  return ppid;
 }

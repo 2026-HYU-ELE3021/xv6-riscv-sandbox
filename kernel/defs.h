@@ -8,6 +8,7 @@ struct spinlock;
 struct sleeplock;
 struct stat;
 struct superblock;
+struct queue;
 
 // bio.c
 void            binit(void);
@@ -180,6 +181,13 @@ void            plic_complete(int);
 void            virtio_disk_init(void);
 void            virtio_disk_rw(struct buf *, int);
 void            virtio_disk_intr(void);
+
+// queue.c
+void            queue_init(struct queue *);
+int             queue_push(struct queue *, void *);
+void *          queue_peek(struct queue *);
+void *          queue_pop(struct queue *);
+int             queue_size(struct queue *);
 
 // number of elements in fixed-size array
 #define NELEM(x) (sizeof(x)/sizeof((x)[0]))

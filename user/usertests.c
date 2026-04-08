@@ -3149,6 +3149,71 @@ outofinodes(char *s)
   return 0;
 }
 
+int
+fcfs_test1(char *s)
+{
+  printf("\n");
+  enum{ N = 5 };
+  enum{ RUN_CNT = 500000, STEP_CNT = 1000 };
+  int n, pid;
+
+  char a_char = 'a';
+  for(n=0; n<N; n++){
+    pid = fork();
+    if(pid < 0) {
+      break;
+    } else if (pid == 0) {
+      for (long i = 0; i < RUN_CNT; i++) {
+        if (i % STEP_CNT == 0) {
+          printf("%c", (a_char + (char) n));
+        }
+      }
+      printf("\n");
+      exit(0);
+    }
+  }
+
+  for(n=0; n<N; n++){
+    wait(0);
+  }
+
+  return 2;
+}
+
+int
+fcfs_test2(char *s)
+{
+  printf("\n");
+  enum{ N = 5 };
+  enum{ YEILD_CNT = 3, RUN_CNT = 500000, STEP_CNT = 1000 };
+  int n, pid;
+
+  char a_char = 'a';
+  for(n=0; n<N; n++){
+    pid = fork();
+    if(pid < 0) {
+      break;
+    } else if (pid == 0) {
+      for (int i = 0; i < YEILD_CNT; i++) {
+        for (long j = 0; j < RUN_CNT; j++) {
+          if (j % STEP_CNT == 0) {
+            printf("%c", (a_char + (char) ((i * N) + n)));
+          }
+        }
+        printf("\n");
+        pause(10);
+      }
+      exit(0);
+    }
+  }
+
+  for(n=0; n<N; n++){
+    wait(0);
+  }
+
+  return 2;
+}
+
 struct test slowtests[] = {
   {bigdir, "bigdir"},
   {manywrites, "manywrites"},
@@ -3156,7 +3221,8 @@ struct test slowtests[] = {
   {execout, "execout"},
   {diskfull, "diskfull"},
   {outofinodes, "outofinodes"},
-
+  {fcfs_test1, "fcfs_test1"},
+  {fcfs_test2, "fcfs_test2"},
   { 0, 0},
 };
 

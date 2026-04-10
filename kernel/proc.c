@@ -5,10 +5,12 @@
 #include "spinlock.h"
 #include "proc.h"
 #include "defs.h"
+#include "queue.h"
 
 struct cpu cpus[NCPU];
 
 struct proc proc[NPROC];
+struct queue runnable_proc_q;
 
 struct proc *initproc;
 
@@ -49,6 +51,7 @@ procinit(void)
 {
   struct proc *p;
 
+  queue_init(&runnable_proc_q);
   initlock(&pid_lock, "nextpid");
   initlock(&wait_lock, "wait_lock");
   for(p = proc; p < &proc[NPROC]; p++) {
@@ -227,6 +230,10 @@ userinit(void)
   p->cwd = namei("/");
 
   p->state = RUNNABLE;
+  if (queue_push(&runnable_proc_q, (void *)p) < 0) {
+    release(&p->lock);
+    panic("userinit: runnable_proc_q overflow");
+  }
 
   release(&p->lock);
 }
@@ -300,6 +307,10 @@ kfork(void)
 
   acquire(&np->lock);
   np->state = RUNNABLE;
+  if (queue_push(&runnable_proc_q, (void *)np) < 0) {
+    release(&np->lock);
+    panic("kfork: runnable_proc_q overflow");
+  }
   release(&np->lock);
 
   return pid;
@@ -438,9 +449,9 @@ scheduler(void)
     intr_off();
 
     int found = 0;
-    for(p = proc; p < &proc[NPROC]; p++) {
+    while ((p = (struct proc *)queue_pop(&runnable_proc_q)) != 0) {
       acquire(&p->lock);
-      if(p->state == RUNNABLE) {
+      while (p->state == RUNNABLE) {
         // Switch to chosen process.  It is the process's job
         // to release its lock and then reacquire it
         // before jumping back to us.
@@ -580,6 +591,10 @@ wakeup(void *chan)
       acquire(&p->lock);
       if(p->state == SLEEPING && p->chan == chan) {
         p->state = RUNNABLE;
+        if (queue_push(&runnable_proc_q, (void *)p) < 0) {
+          release(&p->lock);
+          panic("wakeup: runnable_proc_q overflow");
+        }
       }
       release(&p->lock);
     }
@@ -601,6 +616,10 @@ kkill(int pid)
       if(p->state == SLEEPING){
         // Wake process from sleep().
         p->state = RUNNABLE;
+        if (queue_push(&runnable_proc_q, (void *)p) < 0) {
+          release(&p->lock);
+          panic("kkill: runnable_proc_q overflow");
+        }
       }
       release(&p->lock);
       return 0;

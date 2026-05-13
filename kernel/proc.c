@@ -500,6 +500,18 @@ yield(void)
   release(&p->lock);
 }
 
+int
+ksigalarm(int interval, uint64 handler)
+{
+  return 0;
+}
+
+int
+ksigreturn()
+{
+  return 0;
+}
+
 // A fork child's very first scheduling by scheduler()
 // will swtch to forkret.
 void

@@ -103,6 +103,7 @@ int             either_copyin(void *dst, int user_src, uint64 src, uint64 len);
 void            procdump(void);
 int             ksigalarm(int, uint64);
 int             ksigreturn(void);
+void            run_alarm_handler_if_needed(void);
 
 // swtch.S
 void            swtch(struct context*, struct context*);

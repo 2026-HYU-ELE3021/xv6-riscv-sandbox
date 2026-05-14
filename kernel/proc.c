@@ -146,6 +146,11 @@ found:
   p->context.ra = (uint64)forkret;
   p->context.sp = p->kstack + PGSIZE;
 
+  p->is_running_handler = 0;
+  p->alarm_handler = 0;
+  p->alarm_interval = 0;
+  p->alarm_remained_ticks = 0;
+
   return p;
 }
 
@@ -503,13 +508,45 @@ yield(void)
 int
 ksigalarm(int interval, uint64 handler)
 {
+  struct proc *p = myproc();
+  acquire(&p->lock);
+  if (interval == 0 || p->alarm_interval == 0) {
+    p->alarm_interval = interval;
+    p->alarm_handler = handler;
+    p->alarm_remained_ticks = interval;
+  }
+  release(&p->lock);
   return 0;
 }
 
 int
 ksigreturn()
 {
-  return 0;
+  struct proc *p = myproc();
+  acquire(&p->lock);
+  if (p->is_running_handler == 1) {
+    memmove(p->trapframe, &p->tf_backup, sizeof(struct trapframe));
+    p->alarm_remained_ticks = p->alarm_interval;
+    p->is_running_handler = 0;
+  }
+  release(&p->lock);
+  return p->trapframe->a0;
+}
+
+void
+run_alarm_handler_if_needed()
+{
+  struct proc *p = myproc();
+  acquire(&p->lock);
+  if (p->alarm_interval != 0) {
+    p->alarm_remained_ticks -= 1;
+    if (p->alarm_remained_ticks == 0) {
+      memmove(&p->tf_backup, p->trapframe, sizeof(struct trapframe));
+      p->trapframe->epc = p->alarm_handler;
+      p->is_running_handler = 1;
+    }
+  }
+  release(&p->lock);
 }
 
 // A fork child's very first scheduling by scheduler()
